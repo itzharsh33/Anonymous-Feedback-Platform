@@ -2,8 +2,15 @@
 
 A full-stack anonymous feedback platform built using Next.js that allows users to receive honest feedback securely and anonymously. The application focuses on privacy, simplicity, and usability while providing meaningful message suggestions.
 
-🌐 Live Demo
-https://mistry-message-new.vercel.app
+🌐 Live Demo Credentials
+
+Try the live application without creating an account or completing email verification.
+
+Live Demo: https://mistry-message-new.vercel.app
+
+Username: demo_user
+
+Password: demo@password
 
 🛠 Tech Stack
 Frontend & Backend
@@ -134,3 +141,5 @@ Harsh Kumar Yadav
 B.Tech CSE | Full Stack Developer
 
 GitHub: https://github.com/itzharsh33
+
+

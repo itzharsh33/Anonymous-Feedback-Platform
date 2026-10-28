@@ -1,90 +1,69 @@
 
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import { GoogleGenAI } from "@google/genai";
 
+const DEFAULT_MESSAGES = [
+  "What's one thing that always makes you smile?",
+  "If you could visit any place, where would you go?",
+  "What's a small goal you're excited about?",
+];
 
 export async function POST(request: Request) {
- 
-  try {
-    const geminiApiKey = process.env.GEMINI_API_KEY;
-   
+  const apiKey = process.env.GEMINI_API_KEY;
 
-    if (!geminiApiKey) {
-      return NextResponse.json({ success: false, message: "API key is not configured." }, { status: 500 });
-    }
-   
+  if (!apiKey) {
+    return NextResponse.json({
+      success: true,
+      messages: DEFAULT_MESSAGES,
+      source: "fallback",
+    });
+  }
+
+  try {
+    const ai = new GoogleGenAI({ apiKey });
 
     const prompt =
-      "Create a list of three open-ended and engaging questions formatted as a single string. Each question should be separated by '||'. These questions are for an anonymous social messaging platform, like Qooh.me, and should be suitable for a diverse audience. Avoid personal or sensitive topics, focusing instead on universal themes that encourage friendly interaction. Ensure the questions are intriguing, foster curiosity, and contribute to a positive and welcoming conversational environment and not of more than 18 words.";
+      "Generate exactly 3 friendly, open-ended questions for an anonymous " +
+      "social messaging platform. Avoid sensitive topics. Each question " +
+      "must be at most 18 words. Separate questions using ||.";
 
-     
- 
-
-    const payload = {
-      contents: [{ parts: [{ text: prompt }] }],
-    };
-        
-
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${geminiApiKey}`;
-
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
+    const result = await ai.models.generateContent({
+      model: "gemini-3.8-flash",
+      contents: prompt,
+      config: {
+    httpOptions: {
+      timeout: 30000,
+    },
+  },
     });
 
+    const text = result.text ?? "";
+    console.log("Gemini raw:", text);
 
+    const messages = text
+      .split("||")
+      .map((m) => m.trim())
+      .filter((m) => m.length > 0 && m.split(/\s+/).length <= 18)
+      .slice(0, 3);
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      return NextResponse.json({ success: false, message: errorData.error.message || 'API call failed' }, { status: response.status });
+    for (const fallback of DEFAULT_MESSAGES) {
+      if (messages.length >= 3) break;
+      messages.push(fallback);
     }
 
-
-    const result = await response.json();
-    const generatedText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-
-
-    if (!generatedText) {
-      return NextResponse.json({ success: false, message: 'No suggestions were generated.' }, { status: 500 });
-    }
-    // The code expects the response to include candidates[0].content.parts[0].text. If not found, return a 500 error.
-
-    let messages = generatedText.split('||').map((msg: string) => msg.trim()).filter((msg:string) => msg.length > 0);
-
-    // Enforce max word count (≤ 18 words per message)
-messages = messages.filter((msg: string) => msg.split(/\s+/).length <= 18);
-
-// If more than 3, keep only first 3
-if (messages.length > 3) {
-  messages = messages.slice(0, 3);
-}
-
-// If fewer than 3, fallback: regenerate OR pad with defaults
-if (messages.length < 3) {
-  messages = [
-    ...messages,
-    "What's one thing that always makes you smile?",
-    "If you could visit any place, where would you go?",
-    "What's a small goal you're excited about?"
-  ].slice(0, 3); // ensure exactly 3
-}
-
-  
-
-    return NextResponse.json({ success: true, messages });
-    // Returns a JSON response with success: true and the messages array (HTTP status defaults to 200).
-
+    return NextResponse.json({ success: true, messages, source: "gemini" });
   } catch (error) {
-    console.error('An error occurred:', error);
-    return NextResponse.json({ success: false, message: (error as Error).message }, { status: 500 });
-
-
-
+   console.error("Suggestion generation failed:", error);
+  return NextResponse.json({
+    success: true,
+    messages: DEFAULT_MESSAGES,
+    source: "fallback",
+    message: "Server is busy. Showing default suggestions instead.",
+  });
   }
 }
+
+
 
 
 

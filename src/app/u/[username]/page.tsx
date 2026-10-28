@@ -44,6 +44,7 @@ export default function SendMessagePage() {
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [suggestedMessages, setSuggestedMessages] = useState([]);
   const [showMessages, setShowMessages] = useState(false);
+  const [suggestionNotice, setSuggestionNotice] = useState('');
 
 //   isLoading → when sending message.
 // isSuggesting → when fetching suggestions.
@@ -57,10 +58,12 @@ export default function SendMessagePage() {
 
   const fetchSuggestedMessages = async () => {
     setIsSuggesting(true);
+    setSuggestionNotice('');
     try {
       const response = await axios.post('/api/suggest-messages');
       if (response.data.success) {
         setSuggestedMessages(response.data.messages);
+        setSuggestionNotice(response.data.message || '');
    
       } else {
         toast.error(response.data.message);
@@ -191,6 +194,11 @@ export default function SendMessagePage() {
             </p>
           }
    
+           {suggestionNotice && (
+           <p className="text-center text-yellow-400 mb-4">
+           {suggestionNotice}
+           </p>
+           )}
            {showMessages && (
             
             <Card className="bg-gray-800/50 border border-gray-700/60 text-gray-100 backdrop-blur-sm">
